@@ -6,21 +6,20 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(cors());
-app.use(express.json()); // Allows us to parse incoming JSON data
+app.use(express.json()); 
 
-// Database Connection
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
+app.use('/api/subscriptions', subscriptionRoutes);
+
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected successfully'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
-// Basic API Route to test the server
 app.get('/', (req, res) => {
   res.send('SubSight API is active');
 });
 
-// Start the Server
 app.listen(PORT, () => {
   console.log(`Server is running on port: ${PORT}`);
 });
