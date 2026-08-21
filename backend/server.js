@@ -11,6 +11,7 @@ app.use(express.json());
 
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/auth', require('./routes/authRoutes'));
 
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected successfully'))

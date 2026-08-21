@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Subscription = require('../models/Subscription');
+const auth = require('../middleware/auth');
 
-// 1. CREATE a new subscription (POST)
+router.use(auth);
+
 router.post('/', async (req, res) => {
   try {
     const newSubscription = new Subscription(req.body);
@@ -13,7 +15,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 2. READ all subscriptions (GET)
 router.get('/', async (req, res) => {
   try {
     const subscriptions = await Subscription.find();
@@ -23,13 +24,12 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 3. UPDATE a subscription (PUT)
 router.put('/:id', async (req, res) => {
   try {
     const updatedSubscription = await Subscription.findByIdAndUpdate(
       req.params.id, 
       req.body, 
-      { new: true } // Returns the updated document
+      { new: true } 
     );
     res.status(200).json(updatedSubscription);
   } catch (error) {
@@ -37,7 +37,6 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// 4. DELETE a subscription (DELETE)
 router.delete('/:id', async (req, res) => {
   try {
     await Subscription.findByIdAndDelete(req.params.id);
