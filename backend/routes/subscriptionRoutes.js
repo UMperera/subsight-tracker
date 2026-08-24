@@ -1,49 +1,31 @@
-const express = require('express');
-const router = express.Router();
-const Subscription = require('../models/Subscription');
-const auth = require('../middleware/auth');
-
-router.use(auth);
-
-router.post('/', async (req, res) => {
+router.get('/summary', auth, async (req, res) => {
   try {
-    const newSubscription = new Subscription(req.body);
-    const savedSubscription = await newSubscription.save();
-    res.status(201).json(savedSubscription);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+    const subscriptions = await Subscription.find({ user: req.user.id });
+
+    const totalMonthlyCost = subscriptions.reduce((acc, sub) => {
+      return acc + sub.cost;
+    }, 0);
+
+    const activeCount = subscriptions.length;
+
+    const today = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+    const upcomingRenewals = subscriptions
+      .filter(sub => {
+        const renewalDate = new Date(sub.nextRenewalDate);
+        return renewalDate >= today && renewalDate <= thirtyDaysFromNow;
+      })
+      .sort((a, b) => new Date(a.nextRenewalDate) - new Date(b.nextRenewalDate))
+      .slice(0, 5);
+
+    res.json({
+      totalMonthlyCost,
+      activeCount,
+      upcomingRenewals
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
   }
 });
-
-router.get('/', async (req, res) => {
-  try {
-    const subscriptions = await Subscription.find();
-    res.status(200).json(subscriptions);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.put('/:id', async (req, res) => {
-  try {
-    const updatedSubscription = await Subscription.findByIdAndUpdate(
-      req.params.id, 
-      req.body, 
-      { new: true } 
-    );
-    res.status(200).json(updatedSubscription);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-router.delete('/:id', async (req, res) => {
-  try {
-    await Subscription.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: 'Subscription deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-module.exports = router;
