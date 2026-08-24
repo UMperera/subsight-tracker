@@ -13,6 +13,12 @@ router.get('/summary', auth, async (req, res) => {
 
     const activeCount = subscriptions.length;
 
+    const categoryTotals = subscriptions.reduce((acc, sub) => {
+      const category = sub.category || 'Other';
+      acc[category] = (acc[category] || 0) + sub.cost;
+      return acc;
+    }, {});
+
     const today = new Date();
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(today.getDate() + 30);
@@ -28,6 +34,7 @@ router.get('/summary', auth, async (req, res) => {
     res.json({
       totalMonthlyCost,
       activeCount,
+      categoryTotals,
       upcomingRenewals
     });
   } catch (err) {
