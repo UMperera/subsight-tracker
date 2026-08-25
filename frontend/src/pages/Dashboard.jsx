@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 function Dashboard() {
   const [summary, setSummary] = useState({
@@ -40,41 +41,86 @@ function Dashboard() {
     );
   }
 
+  const categoryData = Object.entries(summary.categoryTotals).map(([key, value]) => ({
+    name: key,
+    value: Number(value)
+  }));
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
+
+
+  const monthly = Number(summary.totalMonthlyCost);
+  const yearly = monthly * 12;
+  const fiveYear = monthly * 12 * 5;
+
   return (
     <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
       <h2>Your Dashboard</h2>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
+      {}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-        <div style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: '8px', flex: 1 }}>
-          <h3>Total Monthly Cost</h3>
-          <p style={{ fontSize: '2rem', margin: 0 }}>
-            ${Number(summary.totalMonthlyCost).toFixed(2)}
+        
+        {}
+        <div style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: '8px', flex: '1 1 20%' }}>
+          <h3>Monthly</h3>
+          <p style={{ fontSize: '1.75rem', margin: 0 }}>
+            ${monthly.toFixed(2)}
           </p>
         </div>
 
-        <div style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: '8px', flex: 1 }}>
-          <h3>Active Subscriptions</h3>
-          <p style={{ fontSize: '2rem', margin: 0 }}>
+        {}
+        <div style={{ padding: '1rem', border: '1px solid #ffeeba', backgroundColor: '#fff3cd', borderRadius: '8px', flex: '1 1 20%' }}>
+          <h3 style={{ color: '#856404' }}>1-Year Cost</h3>
+          <p style={{ fontSize: '1.75rem', margin: 0, color: '#856404', fontWeight: 'bold' }}>
+            ${yearly.toFixed(2)}
+          </p>
+        </div>
+
+        {}
+        <div style={{ padding: '1rem', border: '1px solid #f5c6cb', backgroundColor: '#f8d7da', borderRadius: '8px', flex: '1 1 20%' }}>
+          <h3 style={{ color: '#721c24' }}>5-Year Cost</h3>
+          <p style={{ fontSize: '1.75rem', margin: 0, color: '#721c24', fontWeight: 'bold' }}>
+            ${fiveYear.toFixed(2)}
+          </p>
+        </div>
+
+        {}
+        <div style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: '8px', flex: '1 1 20%' }}>
+          <h3>Active Subs</h3>
+          <p style={{ fontSize: '1.75rem', margin: 0 }}>
             {summary.activeCount}
           </p>
         </div>
+
       </div>
 
       <h3>Spending by Category</h3>
       <div style={{ marginBottom: '2rem', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
-        {Object.keys(summary.categoryTotals).length === 0 ? (
+        {categoryData.length === 0 ? (
           <p>No categories to display yet.</p>
         ) : (
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {Object.entries(summary.categoryTotals).map(([category, total]) => (
-              <li key={category} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #eee' }}>
-                <span>{category}</span>
-                <strong>${Number(total).toFixed(2)}</strong>
-              </li>
-            ))}
-          </ul>
+          <div style={{ height: '300px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         )}
       </div>
 
