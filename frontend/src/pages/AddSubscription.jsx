@@ -8,13 +8,13 @@ function AddSubscription() {
     cost: '',
     category: 'Entertainment',
     billingCycle: 'monthly',
-    nextRenewalDate: ''
+    nextRenewalDate: '',
+    rating: 3 // <-- Default to 3 stars
   });
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -26,22 +26,15 @@ function AddSubscription() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Prevent multiple submissions
-    if (submitting) {
-      return;
-    }
+    if (submitting) return;
 
     setError('');
     setSuccess('');
     setSubmitting(true);
 
     try {
-      console.log('Sending subscription:', formData);
-
       const token = localStorage.getItem('token');
-
-      const response = await axios.post(
+      await axios.post(
         'http://localhost:5000/api/subscriptions',
         formData,
         {
@@ -52,107 +45,42 @@ function AddSubscription() {
         }
       );
 
-      console.log('Subscription added:', response.data);
-
       setSuccess('Subscription added successfully!');
-
       setTimeout(() => {
         navigate('/');
       }, 800);
 
     } catch (err) {
-      console.error('Submission error:', err);
-
       if (err.response) {
-        setError(
-          err.response.data?.message ||
-          'Failed to add subscription.'
-        );
-      } else if (err.request) {
-        setError(
-          'Cannot connect to the backend. Make sure the server is running on port 5000.'
-        );
+        setError(err.response.data?.message || 'Failed to add subscription.');
       } else {
-        setError('Something went wrong.');
+        setError('Cannot connect to the backend. Make sure the server is running on port 5000.');
       }
-
       setSubmitting(false);
     }
   };
 
   return (
-    <div
-      style={{
-        padding: '2rem',
-        maxWidth: '500px',
-        margin: '0 auto'
-      }}
-    >
+    <div style={{ padding: '2rem', maxWidth: '500px', margin: '0 auto' }}>
       <h2>Add New Subscription</h2>
 
-      {error && (
-        <p style={{ color: 'red' }}>
-          {error}
-        </p>
-      )}
-
-      {success && (
-        <p style={{ color: 'green' }}>
-          {success}
-        </p>
-      )}
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {success && <p style={{ color: 'green' }}>{success}</p>}
 
       <form onSubmit={handleSubmit}>
-
         <div style={{ marginBottom: '1rem' }}>
           <label>Subscription Name</label>
-
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              marginTop: '0.25rem'
-            }}
-          />
+          <input type="text" name="name" value={formData.name} onChange={handleChange} required style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
           <label>Cost ($)</label>
-
-          <input
-            type="number"
-            name="cost"
-            value={formData.cost}
-            onChange={handleChange}
-            min="0"
-            step="0.01"
-            required
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              marginTop: '0.25rem'
-            }}
-          />
+          <input type="number" name="cost" value={formData.cost} onChange={handleChange} min="0" step="0.01" required style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
           <label>Category</label>
-
-          <select
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              marginTop: '0.25rem'
-            }}
-          >
+          <select name="category" value={formData.category} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}>
             <option value="Entertainment">Entertainment</option>
             <option value="Utilities">Utilities</option>
             <option value="Work">Work</option>
@@ -162,63 +90,39 @@ function AddSubscription() {
 
         <div style={{ marginBottom: '1rem' }}>
           <label>Billing Cycle</label>
-
-          <select
-            name="billingCycle"
-            value={formData.billingCycle}
-            onChange={handleChange}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              marginTop: '0.25rem'
-            }}
-          >
+          <select name="billingCycle" value={formData.billingCycle} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
             <option value="yearly">Yearly</option>
           </select>
         </div>
 
+        {/* =========================================
+            NEW VALUE RATING DROPDOWN
+        ========================================= */}
         <div style={{ marginBottom: '1rem' }}>
-          <label>Next Renewal Date</label>
-
-          <input
-            type="date"
-            name="nextRenewalDate"
-            value={formData.nextRenewalDate}
-            onChange={handleChange}
-            required
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              marginTop: '0.25rem'
-            }}
-          />
+          <label>Value Rating (1-5 Stars)</label>
+          <select name="rating" value={formData.rating} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}>
+            <option value="5">⭐⭐⭐⭐⭐ (Absolute Must-Have)</option>
+            <option value="4">⭐⭐⭐⭐ (Use it often)</option>
+            <option value="3">⭐⭐⭐ (It's alright)</option>
+            <option value="2">⭐⭐ (Barely use it)</option>
+            <option value="1">⭐ (Waste of money)</option>
+          </select>
         </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            background: submitting ? '#999' : '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: submitting ? 'not-allowed' : 'pointer',
-            fontSize: '1rem'
-          }}
-        >
+        <div style={{ marginBottom: '1rem' }}>
+          <label>Next Renewal Date</label>
+          <input type="date" name="nextRenewalDate" value={formData.nextRenewalDate} onChange={handleChange} required style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+        </div>
+
+        <button type="submit" disabled={submitting} style={{ width: '100%', padding: '0.75rem', background: submitting ? '#999' : '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: submitting ? 'not-allowed' : 'pointer', fontSize: '1rem' }}>
           {submitting ? 'Adding...' : 'Add Subscription'}
         </button>
-
       </form>
 
       <div style={{ marginTop: '1rem' }}>
-        <Link to="/">
-          ← Back to Dashboard
-        </Link>
+        <Link to="/">← Back to Dashboard</Link>
       </div>
     </div>
   );

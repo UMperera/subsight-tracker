@@ -3,11 +3,6 @@ const router = express.Router();
 const Subscription = require('../models/Subscription');
 
 
-// ======================================================
-// ADD SUBSCRIPTION
-// POST /api/subscriptions
-// ======================================================
-
 router.post('/', async (req, res) => {
   try {
     console.log('Received subscription data:', req.body);
@@ -18,6 +13,7 @@ router.post('/', async (req, res) => {
       category: req.body.category,
       billingCycle: req.body.billingCycle,
       nextRenewalDate: req.body.nextRenewalDate,
+      rating: Number(req.body.rating) || 3,
 
       startDate: new Date(),
       usageLevel: 'daily',
@@ -40,10 +36,6 @@ router.post('/', async (req, res) => {
 });
 
 
-// ======================================================
-// GET ALL SUBSCRIPTIONS
-// GET /api/subscriptions
-// ======================================================
 
 router.get('/', async (req, res) => {
   try {
@@ -60,8 +52,6 @@ router.get('/', async (req, res) => {
     });
   }
 });
-
-
 
 
 

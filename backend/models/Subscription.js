@@ -23,6 +23,13 @@ const subscriptionSchema = new mongoose.Schema(
       required: true
     },
 
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: 3
+    },
+
     billingCycle: {
       type: String,
       enum: ['weekly', 'monthly', 'yearly'],
