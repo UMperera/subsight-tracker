@@ -6,6 +6,8 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 function Dashboard() {
   const [summary, setSummary] = useState({
     totalMonthlyCost: 0,
+    potentialSavings: 0,
+    overlappingCategories: [],
     activeCount: 0,
     categoryTotals: {},
     upcomingRenewals: []
@@ -18,9 +20,7 @@ function Dashboard() {
       try {
         const token = localStorage.getItem('token');
         const res = await axios.get('http://localhost:5000/api/subscriptions/summary', {
-          headers: {
-            'x-auth-token': token || ''
-          }
+          headers: { 'x-auth-token': token || '' }
         });
         setSummary(res.data);
       } catch (err) {
@@ -32,22 +32,13 @@ function Dashboard() {
     fetchSummary();
   }, []);
 
-  if (loading) {
-    return (
-      <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-        <h2>Your Dashboard</h2>
-        <p>Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
 
   const categoryData = Object.entries(summary.categoryTotals).map(([key, value]) => ({
     name: key,
     value: Number(value)
   }));
-
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
-
 
   const monthly = Number(summary.totalMonthlyCost);
   const yearly = monthly * 12;
@@ -60,40 +51,45 @@ function Dashboard() {
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
       {}
+      {summary.potentialSavings > 0 && (
+        <div style={{ marginBottom: '1rem', padding: '1.25rem', border: '1px solid #c3e6cb', backgroundColor: '#d4edda', borderRadius: '8px' }}>
+          <h3 style={{ color: '#155724', marginTop: 0 }}>💡 Smart Insight: Cut the Clutter!</h3>
+          <p style={{ color: '#155724', margin: 0 }}>
+            You are spending <strong>${summary.potentialSavings.toFixed(2)}/month</strong> (that's <strong>${(summary.potentialSavings * 12).toFixed(2)}/year</strong>) on subscriptions you rated 1 or 2 stars. Consider cancelling them to save money!
+          </p>
+        </div>
+      )}
+
+      {}
+      {summary.overlappingCategories && summary.overlappingCategories.length > 0 && (
+        <div style={{ marginBottom: '1.5rem', padding: '1.25rem', border: '1px solid #ffeeba', backgroundColor: '#fff3cd', borderRadius: '8px' }}>
+          <h3 style={{ color: '#856404', marginTop: 0 }}>⚠️ Potential Overlap Detected</h3>
+          {summary.overlappingCategories.map((item) => (
+            <p key={item.category} style={{ color: '#856404', margin: '0.25rem 0 0' }}>
+              You have <strong>{item.count} active subscriptions</strong> in the <strong>{item.category}</strong> category. You might be paying for redundant services.
+            </p>
+          ))}
+        </div>
+      )}
+
+      {}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-        
-        {}
-        <div style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: '8px', flex: '1 1 20%' }}>
+        <div style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: '8px', flex: 1 }}>
           <h3>Monthly</h3>
-          <p style={{ fontSize: '1.75rem', margin: 0 }}>
-            ${monthly.toFixed(2)}
-          </p>
+          <p style={{ fontSize: '1.75rem', margin: 0 }}>${monthly.toFixed(2)}</p>
         </div>
-
-        {}
-        <div style={{ padding: '1rem', border: '1px solid #ffeeba', backgroundColor: '#fff3cd', borderRadius: '8px', flex: '1 1 20%' }}>
+        <div style={{ padding: '1rem', border: '1px solid #ffeeba', backgroundColor: '#fff3cd', borderRadius: '8px', flex: 1 }}>
           <h3 style={{ color: '#856404' }}>1-Year Cost</h3>
-          <p style={{ fontSize: '1.75rem', margin: 0, color: '#856404', fontWeight: 'bold' }}>
-            ${yearly.toFixed(2)}
-          </p>
+          <p style={{ fontSize: '1.75rem', margin: 0, color: '#856404', fontWeight: 'bold' }}>${yearly.toFixed(2)}</p>
         </div>
-
-        {}
-        <div style={{ padding: '1rem', border: '1px solid #f5c6cb', backgroundColor: '#f8d7da', borderRadius: '8px', flex: '1 1 20%' }}>
+        <div style={{ padding: '1rem', border: '1px solid #f5c6cb', backgroundColor: '#f8d7da', borderRadius: '8px', flex: 1 }}>
           <h3 style={{ color: '#721c24' }}>5-Year Cost</h3>
-          <p style={{ fontSize: '1.75rem', margin: 0, color: '#721c24', fontWeight: 'bold' }}>
-            ${fiveYear.toFixed(2)}
-          </p>
+          <p style={{ fontSize: '1.75rem', margin: 0, color: '#721c24', fontWeight: 'bold' }}>${fiveYear.toFixed(2)}</p>
         </div>
-
-        {}
-        <div style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: '8px', flex: '1 1 20%' }}>
+        <div style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: '8px', flex: 1 }}>
           <h3>Active Subs</h3>
-          <p style={{ fontSize: '1.75rem', margin: 0 }}>
-            {summary.activeCount}
-          </p>
+          <p style={{ fontSize: '1.75rem', margin: 0 }}>{summary.activeCount}</p>
         </div>
-
       </div>
 
       <h3>Spending by Category</h3>
@@ -104,15 +100,7 @@ function Dashboard() {
           <div style={{ height: '300px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
+                <Pie data={categoryData} cx="50%" cy="50%" outerRadius={100} fill="#8884d8" dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                   {categoryData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
@@ -131,20 +119,15 @@ function Dashboard() {
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {summary.upcomingRenewals.map((sub) => (
             <li key={sub._id} style={{ padding: '1rem', borderBottom: '1px solid #eee', marginBottom: '0.5rem' }}>
-              <strong>{sub.name}</strong> - ${Number(sub.cost).toFixed(2)} 
-              <span> (Renews: {new Date(sub.nextRenewalDate).toLocaleDateString()})</span>
+              <strong>{sub.name}</strong> - ${Number(sub.cost).toFixed(2)} <span>(Renews: {new Date(sub.nextRenewalDate).toLocaleDateString()})</span>
             </li>
           ))}
         </ul>
       )}
 
       <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-        <Link to="/add" style={{ padding: '0.5rem 1rem', background: '#007bff', color: 'white', textDecoration: 'none', borderRadius: '4px' }}>
-          + Add New Subscription
-        </Link>
-        <Link to="/all" style={{ padding: '0.5rem 1rem', background: '#6c757d', color: 'white', textDecoration: 'none', borderRadius: '4px' }}>
-          View All / Delete
-        </Link>
+        <Link to="/add" style={{ padding: '0.5rem 1rem', background: '#007bff', color: 'white', textDecoration: 'none', borderRadius: '4px' }}>+ Add New Subscription</Link>
+        <Link to="/all" style={{ padding: '0.5rem 1rem', background: '#6c757d', color: 'white', textDecoration: 'none', borderRadius: '4px' }}>View All / Delete</Link>
       </div>
     </div>
   );
