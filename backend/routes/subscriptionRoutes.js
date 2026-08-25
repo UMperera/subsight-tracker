@@ -1,125 +1,184 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
 const Subscription = require('../models/Subscription');
 
-router.get('/summary', auth, async (req, res) => {
-  try {
-    const subscriptions = await Subscription.find({ user: req.user.id });
 
-    const totalMonthlyCost = subscriptions.reduce((acc, sub) => {
-      return acc + sub.cost;
-    }, 0);
+// ======================================================
+// ADD SUBSCRIPTION
+// POST /api/subscriptions
+// ======================================================
+
+router.post('/', async (req, res) => {
+  try {
+    console.log('Received subscription data:', req.body);
+
+    const subscription = new Subscription({
+      name: req.body.name,
+      cost: Number(req.body.cost),
+      category: req.body.category,
+      billingCycle: req.body.billingCycle,
+      nextRenewalDate: req.body.nextRenewalDate,
+
+      startDate: new Date(),
+      usageLevel: 'daily',
+      status: 'active'
+    });
+
+    const savedSubscription = await subscription.save();
+
+    console.log('Subscription saved:', savedSubscription);
+
+    res.status(201).json(savedSubscription);
+
+  } catch (error) {
+    console.error('Error adding subscription:', error);
+
+    res.status(500).json({
+      message: error.message
+    });
+  }
+});
+
+
+// ======================================================
+// GET ALL SUBSCRIPTIONS
+// GET /api/subscriptions
+// ======================================================
+
+router.get('/', async (req, res) => {
+  try {
+    const subscriptions = await Subscription.find()
+      .sort({ nextRenewalDate: 1 });
+
+    res.status(200).json(subscriptions);
+
+  } catch (error) {
+    console.error('Error getting subscriptions:', error);
+
+    res.status(500).json({
+      message: error.message
+    });
+  }
+});
+
+
+// ======================================================
+// DASHBOARD SUMMARY
+// GET /api/subscriptions/summary
+// ======================================================
+
+router.get('/summary', async (req, res) => {
+  try {
+    const subscriptions = await Subscription.find({
+      status: 'active'
+    }).sort({
+      nextRenewalDate: 1
+    });
+
+
+    // ------------------------------------------
+    // Active subscription count
+    // ------------------------------------------
 
     const activeCount = subscriptions.length;
 
-    const categoryTotals = subscriptions.reduce((acc, sub) => {
-      const category = sub.category || 'Other';
-      acc[category] = (acc[category] || 0) + sub.cost;
-      return acc;
-    }, {});
+
+    // ------------------------------------------
+    // Calculate monthly cost
+    // ------------------------------------------
+
+    let totalMonthlyCost = 0;
+
+    subscriptions.forEach((sub) => {
+      const cost = Number(sub.cost) || 0;
+
+      if (sub.billingCycle === 'weekly') {
+        totalMonthlyCost += cost * 4.33;
+      }
+
+      else if (sub.billingCycle === 'monthly') {
+        totalMonthlyCost += cost;
+      }
+
+      else if (sub.billingCycle === 'yearly') {
+        totalMonthlyCost += cost / 12;
+      }
+    });
+
+
+    // ------------------------------------------
+    // Spending by category
+    // ------------------------------------------
+
+    const categoryTotals = {};
+
+    subscriptions.forEach((sub) => {
+      const cost = Number(sub.cost) || 0;
+
+      let monthlyCost = 0;
+
+      if (sub.billingCycle === 'weekly') {
+        monthlyCost = cost * 4.33;
+      }
+
+      else if (sub.billingCycle === 'monthly') {
+        monthlyCost = cost;
+      }
+
+      else if (sub.billingCycle === 'yearly') {
+        monthlyCost = cost / 12;
+      }
+
+
+      if (!categoryTotals[sub.category]) {
+        categoryTotals[sub.category] = 0;
+      }
+
+      categoryTotals[sub.category] += monthlyCost;
+    });
+
+
+    // ------------------------------------------
+    // Upcoming renewals - next 30 days
+    // ------------------------------------------
 
     const today = new Date();
+
     const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(today.getDate() + 30);
+    thirtyDaysFromNow.setDate(
+      today.getDate() + 30
+    );
 
-    const upcomingRenewals = subscriptions
-      .filter(sub => {
-        const renewalDate = new Date(sub.nextRenewalDate);
-        return renewalDate >= today && renewalDate <= thirtyDaysFromNow;
-      })
-      .sort((a, b) => new Date(a.nextRenewalDate) - new Date(b.nextRenewalDate))
-      .slice(0, 5);
 
-    res.json({
-      totalMonthlyCost,
+    const upcomingRenewals = subscriptions.filter((sub) => {
+      const renewalDate = new Date(sub.nextRenewalDate);
+
+      return (
+        renewalDate >= today &&
+        renewalDate <= thirtyDaysFromNow
+      );
+    });
+
+
+    // ------------------------------------------
+    // Send dashboard data
+    // ------------------------------------------
+
+    res.status(200).json({
+      totalMonthlyCost: Number(totalMonthlyCost.toFixed(2)),
       activeCount,
       categoryTotals,
       upcomingRenewals
     });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
-router.post('/', auth, async (req, res) => {
-  try {
-    const { name, cost, billingCycle, nextRenewalDate, category } = req.body;
-    
-    const newSubscription = new Subscription({
-      user: req.user.id,
-      name,
-      cost,
-      billingCycle,
-      nextRenewalDate,
-      category
+  } catch (error) {
+    console.error('Error generating summary:', error);
+
+    res.status(500).json({
+      message: error.message
     });
-
-    const savedSubscription = await newSubscription.save();
-    res.json(savedSubscription);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
   }
 });
 
-router.get('/', auth, async (req, res) => {
-  try {
-    const subscriptions = await Subscription.find({ user: req.user.id }).sort({ nextRenewalDate: 1 });
-    res.json(subscriptions);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-router.get('/:id', auth, async (req, res) => {
-  try {
-    const subscription = await Subscription.findById(req.params.id);
-    if (!subscription) {
-      return res.status(404).json({ message: 'Subscription not found' });
-    }
-    if (subscription.user.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'Not authorized' });
-    }
-    res.json(subscription);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-router.put('/:id', auth, async (req, res) => {
-  try {
-    let subscription = await Subscription.findById(req.params.id);
-    if (!subscription) {
-      return res.status(404).json({ message: 'Subscription not found' });
-    }
-    if (subscription.user.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'Not authorized' });
-    }
-    subscription = await Subscription.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
-      { new: true }
-    );
-    res.json(subscription);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-router.delete('/:id', auth, async (req, res) => {
-  try {
-    const subscription = await Subscription.findById(req.params.id);
-    if (!subscription) {
-      return res.status(404).json({ message: 'Subscription not found' });
-    }
-    if (subscription.user.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'Not authorized' });
-    }
-    await Subscription.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Subscription removed' });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
 module.exports = router;
