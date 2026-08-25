@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Subscription = require('../models/Subscription');
+const nodemailer = require('nodemailer'); // <-- Make sure this is here!
 
 
 router.post('/', async (req, res) => {
@@ -54,15 +55,12 @@ router.get('/summary', async (req, res) => {
       else if (sub.billingCycle === 'yearly') monthlyCost = cost / 12;
 
       totalMonthlyCost += monthlyCost;
-
       
       if (!categoryTotals[sub.category]) categoryTotals[sub.category] = 0;
       categoryTotals[sub.category] += monthlyCost;
-
       
       if (!categoryCounts[sub.category]) categoryCounts[sub.category] = 0;
       categoryCounts[sub.category] += 1;
-
       
       const rating = Number(sub.rating) || 3;
       if (rating <= 2) {
@@ -70,12 +68,10 @@ router.get('/summary', async (req, res) => {
       }
     });
 
-    
     const overlappingCategories = Object.entries(categoryCounts)
       .filter(([_, count]) => count >= 3)
       .map(([category, count]) => ({ category, count }));
 
-    
     const today = new Date();
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(today.getDate() + 30);
@@ -95,6 +91,55 @@ router.get('/summary', async (req, res) => {
     });
 
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+router.get('/test-reminders', async (req, res) => {
+  try {
+    const subscriptions = await Subscription.find({ status: 'active' });
+    
+    const today = new Date();
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(today.getDate() + 3);
+
+    const upcoming = subscriptions.filter(sub => {
+      const renewalDate = new Date(sub.nextRenewalDate);
+      return renewalDate >= today && renewalDate <= threeDaysFromNow;
+    });
+
+    if (upcoming.length === 0) {
+      return res.status(200).json({ message: 'No subscriptions renewing in the next 3 days. No email sent.' });
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    let emailText = `Hello! This is SubSight Tracker warning you about upcoming charges:\n\n`;
+    upcoming.forEach(sub => {
+      emailText += `- ${sub.name}: $${Number(sub.cost).toFixed(2)} (Renews on ${new Date(sub.nextRenewalDate).toLocaleDateString()})\n`;
+    });
+    emailText += `\nConsider cancelling them if you don't use them!`;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_USER,
+      subject: '🚨 SubSight Tracker: Upcoming Subscription Renewals!',
+      text: emailText
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('Reminder email sent successfully!');
+    
+    res.status(200).json({ message: `Reminder email sent for ${upcoming.length} subscriptions!` });
+  } catch (error) {
+    console.error('EXACT EMAIL ERROR:', error.message);
     res.status(500).json({ message: error.message });
   }
 });

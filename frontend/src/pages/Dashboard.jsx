@@ -14,6 +14,7 @@ function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [emailStatus, setEmailStatus] = useState('');
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -31,6 +32,19 @@ function Dashboard() {
     };
     fetchSummary();
   }, []);
+
+  const handleTestEmail = async () => {
+    setEmailStatus('Sending email...');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:5000/api/subscriptions/test-reminders', {
+        headers: { 'x-auth-token': token || '' }
+      });
+      setEmailStatus(res.data.message);
+    } catch (err) {
+      setEmailStatus(err.response?.data?.message || 'Network error connecting to backend.');
+    }
+  };
 
   if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
 
@@ -125,10 +139,17 @@ function Dashboard() {
         </ul>
       )}
 
-      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+      {}
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <Link to="/add" style={{ padding: '0.5rem 1rem', background: '#007bff', color: 'white', textDecoration: 'none', borderRadius: '4px' }}>+ Add New Subscription</Link>
         <Link to="/all" style={{ padding: '0.5rem 1rem', background: '#6c757d', color: 'white', textDecoration: 'none', borderRadius: '4px' }}>View All / Delete</Link>
+        
+        <button onClick={handleTestEmail} style={{ padding: '0.5rem 1rem', background: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+          📧 Test Email Reminder
+        </button>
       </div>
+
+      {emailStatus && <p style={{ marginTop: '1rem', fontWeight: 'bold', color: '#333' }}>{emailStatus}</p>}
     </div>
   );
 }
