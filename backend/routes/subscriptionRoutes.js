@@ -62,10 +62,8 @@ router.get('/', async (req, res) => {
 });
 
 
-// ======================================================
-// DASHBOARD SUMMARY
-// GET /api/subscriptions/summary
-// ======================================================
+
+
 
 router.get('/summary', async (req, res) => {
   try {
@@ -76,16 +74,11 @@ router.get('/summary', async (req, res) => {
     });
 
 
-    // ------------------------------------------
-    // Active subscription count
-    // ------------------------------------------
 
     const activeCount = subscriptions.length;
 
 
-    // ------------------------------------------
-    // Calculate monthly cost
-    // ------------------------------------------
+  
 
     let totalMonthlyCost = 0;
 
@@ -106,9 +99,7 @@ router.get('/summary', async (req, res) => {
     });
 
 
-    // ------------------------------------------
-    // Spending by category
-    // ------------------------------------------
+    
 
     const categoryTotals = {};
 
@@ -138,9 +129,6 @@ router.get('/summary', async (req, res) => {
     });
 
 
-    // ------------------------------------------
-    // Upcoming renewals - next 30 days
-    // ------------------------------------------
 
     const today = new Date();
 
@@ -160,10 +148,6 @@ router.get('/summary', async (req, res) => {
     });
 
 
-    // ------------------------------------------
-    // Send dashboard data
-    // ------------------------------------------
-
     res.status(200).json({
       totalMonthlyCost: Number(totalMonthlyCost.toFixed(2)),
       activeCount,
@@ -180,5 +164,20 @@ router.get('/summary', async (req, res) => {
   }
 });
 
+router.delete('/:id', async (req, res) => {
+  try {
+    const deletedSubscription = await Subscription.findByIdAndDelete(req.params.id);
+    
+    if (!deletedSubscription) {
+      return res.status(404).json({ message: 'Subscription not found' });
+    }
+    
+    console.log('Deleted subscription:', req.params.id);
+    res.status(200).json({ message: 'Subscription deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting subscription:', error);
+    res.status(500).json({ message: error.message });
+  }
+  });
 
 module.exports = router;

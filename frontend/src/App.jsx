@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import AddSubscription from './pages/AddSubscription'; 
+import AddSubscription from './pages/AddSubscription';
+import SubscriptionsList from './pages/SubscriptionsList'; 
 
 function App() {
   return (
@@ -9,7 +10,8 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Dashboard />} />
-        <Route path="/add" element={<AddSubscription />} /> 
+        <Route path="/add" element={<AddSubscription />} />
+        <Route path="/all" element={<SubscriptionsList />} /> 
       </Routes>
     </BrowserRouter>
   );
