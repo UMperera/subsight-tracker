@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const Subscription = require('../models/Subscription');
-const nodemailer = require('nodemailer'); // <-- Make sure this is here!
+const verifyToken = require('../middleware/auth'); 
 
-
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
   try {
     const subscription = new Subscription({
+      userId: req.user.id, 
       name: req.body.name,
       cost: Number(req.body.cost),
       category: req.body.category,
@@ -26,9 +26,10 @@ router.post('/', async (req, res) => {
 });
 
 
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
   try {
-    const subscriptions = await Subscription.find().sort({ nextRenewalDate: 1 });
+    
+    const subscriptions = await Subscription.find({ userId: req.user.id }).sort({ nextRenewalDate: 1 });
     res.status(200).json(subscriptions);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -36,9 +37,10 @@ router.get('/', async (req, res) => {
 });
 
 
-router.get('/summary', async (req, res) => {
+router.get('/summary', verifyToken, async (req, res) => {
   try {
-    const subscriptions = await Subscription.find({ status: 'active' }).sort({ nextRenewalDate: 1 });
+    
+    const subscriptions = await Subscription.find({ userId: req.user.id, status: 'active' }).sort({ nextRenewalDate: 1 });
 
     const activeCount = subscriptions.length;
     let totalMonthlyCost = 0;
@@ -50,17 +52,24 @@ router.get('/summary', async (req, res) => {
       const cost = Number(sub.cost) || 0;
       let monthlyCost = 0;
 
-      if (sub.billingCycle === 'weekly') monthlyCost = cost * 4.33;
-      else if (sub.billingCycle === 'monthly') monthlyCost = cost;
-      else if (sub.billingCycle === 'yearly') monthlyCost = cost / 12;
+      const cycle = (sub.billingCycle || 'monthly').toLowerCase();
+
+      if (cycle === 'weekly') {
+        monthlyCost = cost * 4.33;
+      } else if (cycle === 'yearly') {
+        monthlyCost = cost / 12;
+      } else {
+        monthlyCost = cost;
+      }
 
       totalMonthlyCost += monthlyCost;
       
-      if (!categoryTotals[sub.category]) categoryTotals[sub.category] = 0;
-      categoryTotals[sub.category] += monthlyCost;
+      const category = sub.category || 'Uncategorized';
+      if (!categoryTotals[category]) categoryTotals[category] = 0;
+      categoryTotals[category] += monthlyCost;
       
-      if (!categoryCounts[sub.category]) categoryCounts[sub.category] = 0;
-      categoryCounts[sub.category] += 1;
+      if (!categoryCounts[category]) categoryCounts[category] = 0;
+      categoryCounts[category] += 1;
       
       const rating = Number(sub.rating) || 3;
       if (rating <= 2) {
@@ -96,64 +105,43 @@ router.get('/summary', async (req, res) => {
 });
 
 
-router.get('/test-reminders', async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
   try {
-    const subscriptions = await Subscription.find({ status: 'active' });
     
-    const today = new Date();
-    const threeDaysFromNow = new Date();
-    threeDaysFromNow.setDate(today.getDate() + 3);
-
-    const upcoming = subscriptions.filter(sub => {
-      const renewalDate = new Date(sub.nextRenewalDate);
-      return renewalDate >= today && renewalDate <= threeDaysFromNow;
+    const deletedSubscription = await Subscription.findOneAndDelete({ 
+      _id: req.params.id, 
+      userId: req.user.id 
     });
 
-    if (upcoming.length === 0) {
-      return res.status(200).json({ message: 'No subscriptions renewing in the next 3 days. No email sent.' });
+    if (!deletedSubscription) {
+      return res.status(404).json({ message: 'Subscription not found or unauthorized' });
     }
-
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
-
-    let emailText = `Hello! This is SubSight Tracker warning you about upcoming charges:\n\n`;
-    upcoming.forEach(sub => {
-      emailText += `- ${sub.name}: $${Number(sub.cost).toFixed(2)} (Renews on ${new Date(sub.nextRenewalDate).toLocaleDateString()})\n`;
-    });
-    emailText += `\nConsider cancelling them if you don't use them!`;
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER,
-      subject: '🚨 SubSight Tracker: Upcoming Subscription Renewals!',
-      text: emailText
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log('Reminder email sent successfully!');
-    
-    res.status(200).json({ message: `Reminder email sent for ${upcoming.length} subscriptions!` });
+    res.status(200).json({ message: 'Subscription deleted successfully' });
   } catch (error) {
-    console.error('EXACT EMAIL ERROR:', error.message);
     res.status(500).json({ message: error.message });
   }
 });
 
 
-router.delete('/:id', async (req, res) => {
+router.get('/acknowledge/:id', async (req, res) => {
   try {
-    const deletedSubscription = await Subscription.findByIdAndDelete(req.params.id);
-    if (!deletedSubscription) {
-      return res.status(404).json({ message: 'Subscription not found' });
-    }
-    res.status(200).json({ message: 'Subscription deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const sub = await Subscription.findById(req.params.id);
+    if (!sub) return res.status(404).send('Subscription not found');
+
+    await Subscription.findByIdAndUpdate(req.params.id, {
+      acknowledgedDate: sub.nextRenewalDate
+    });
+    
+    res.send(`
+      <div style="font-family: sans-serif; text-align: center; padding: 50px; background-color: #f0fdf4; color: #166534; height: 100vh;">
+        <h1 style="font-size: 2.2rem;">✔️ Reminder Paused</h1>
+        <p style="font-size: 1.2rem;">We won't send you any more emails about <strong>${sub.name}</strong> for this month's bill.</p>
+        <p style="color: #475569;">You can safely close this window.</p>
+      </div>
+    `);
+  } catch (err) {
+    console.error('PAUSE ERROR:', err.message); 
+    res.status(500).send('An error occurred while pausing the reminder.');
   }
 });
 
