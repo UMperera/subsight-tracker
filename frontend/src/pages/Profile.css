@@ -1,0 +1,118 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+
+.profile-page {
+  display: flex; height: 100vh; width: 100%; overflow: hidden;
+  background: radial-gradient(circle at 15% 40%, #e0e7ff 0%, transparent 45%), radial-gradient(circle at 85% 30%, #f3e8ff 0%, transparent 45%), radial-gradient(circle at 50% 90%, #e0f2fe 0%, transparent 50%), #f8fafc !important;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+body.dark-mode .profile-page {
+  background: radial-gradient(circle at 15% 40%, #1e1b4b 0%, transparent 45%), radial-gradient(circle at 85% 30%, #3b0764 0%, transparent 45%), radial-gradient(circle at 50% 90%, #1e3a8a 0%, transparent 50%), #020617 !important;
+}
+
+
+.profile-main, .profile-container {
+  background: transparent !important; box-shadow: none !important; border: none !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
+
+.profile-main { flex: 1; height: 100vh; overflow-y: auto; overflow-x: hidden; padding: 40px; box-sizing: border-box; }
+.profile-container { width: 100%; max-width: 900px; display: flex; flex-direction: column; margin: 0 auto; }
+
+
+.glass-panel {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4)) !important;
+  backdrop-filter: blur(24px) !important; -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  border-radius: 20px; box-shadow: 0 10px 30px rgba(99, 102, 241, 0.05); transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+body.dark-mode .glass-panel {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)) !important; 
+  border: 1px solid rgba(255, 255, 255, 0.1) !important; 
+  border-top: 1px solid rgba(255, 255, 255, 0.2) !important; 
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+}
+
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; 
+  margin-bottom: 40px;
+}
+
+.profile-header h2 { 
+  margin: 0 0 10px 0; 
+  font-size: 2.5rem; 
+  font-weight: 800; 
+  letter-spacing: -0.5px;
+  background: linear-gradient(90deg, #6366f1, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+body.dark-mode .profile-header h2 { 
+  background: linear-gradient(90deg, #a855f7, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.profile-header p { margin: 0; color: #475569; font-size: 1.1rem; font-weight: 500;}
+body.dark-mode .profile-header p { color: #94a3b8; }
+
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  padding: 50px;
+  gap: 50px;
+}
+
+.profile-card-left {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  border-right: 1px solid rgba(15, 23, 42, 0.1);
+  padding-right: 50px;
+}
+body.dark-mode .profile-card-left { border-right: 1px solid rgba(255,255,255,0.1); }
+
+.profile-avatar-large {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  color: white;
+  font-size: 2.5rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+}
+
+.profile-titles h3 { margin: 0 0 10px 0; font-size: 2rem; font-weight: 800; color: #0f172a; }
+body.dark-mode .profile-titles h3 { color: #f8fafc; }
+
+.badge-active {
+  background: rgba(99, 102, 241, 0.15); color: #6366f1; padding: 6px 14px;
+  border-radius: 99px; font-size: 0.85rem; font-weight: 800;
+  border: 1px solid rgba(99, 102, 241, 0.3); display: inline-block;
+}
+body.dark-mode .badge-active { background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); }
+
+.profile-card-right { display: flex; flex-direction: column; gap: 30px; flex: 1; }
+
+.info-group { display: flex; flex-direction: column; gap: 8px; }
+
+.info-group label { font-size: 0.85rem; font-weight: 800; color: #64748b; letter-spacing: 0.5px; text-transform: uppercase; }
+body.dark-mode .info-group label { color: #94a3b8; }
+
+.info-group p { margin: 0; font-size: 1.15rem; font-weight: 700; color: #0f172a; }
+body.dark-mode .info-group p { color: #f8fafc; }
+
+
+@media (max-width: 800px) {
+  .profile-card { flex-direction: column; align-items: flex-start; padding: 30px; gap: 30px; }
+  .profile-card-left { border-right: none; border-bottom: 1px solid rgba(15, 23, 42, 0.1); padding-right: 0; padding-bottom: 30px; width: 100%; }
+  body.dark-mode .profile-card-left { border-bottom: 1px solid rgba(255,255,255,0.1); }
+}

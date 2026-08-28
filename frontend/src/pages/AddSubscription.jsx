@@ -1,131 +1,199 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import Sidebar from '../components/Sidebar';
+import './AddSubscription.css';
 
-function AddSubscription() {
+const AddSubscription = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  
+  const prefillData = location.state || {};
+
+  
   const [formData, setFormData] = useState({
-    name: '',
-    cost: '',
-    category: 'Entertainment',
-    billingCycle: 'monthly',
+    name: prefillData.name || '',
+    cost: prefillData.cost || '',
+    billingCycle: prefillData.billingCycle || 'Monthly',
+    category: prefillData.category || 'Entertainment',
     nextRenewalDate: '',
-    rating: 3 // <-- Default to 3 stars
+    rating: 3,
+    reminders: true
   });
 
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const navigate = useNavigate();
-
   const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (submitting) return;
-
-    setError('');
-    setSuccess('');
-    setSubmitting(true);
+    console.log('Sending data to backend:', formData);
 
     try {
+      const BACKEND_API_URL = 'http://localhost:5000/api/subscriptions';
       const token = localStorage.getItem('token');
-      await axios.post(
-        'http://localhost:5000/api/subscriptions',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token || ''
-          }
-        }
-      );
 
-      setSuccess('Subscription added successfully!');
-      setTimeout(() => {
-        navigate('/');
-      }, 800);
+      const response = await fetch(BACKEND_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify(formData),
+      });
 
-    } catch (err) {
-      if (err.response) {
-        setError(err.response.data?.message || 'Failed to add subscription.');
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Backend response:', result);
+        navigate('/dashboard'); 
       } else {
-        setError('Cannot connect to the backend. Make sure the server is running on port 5000.');
+        const errorData = await response.json();
+        console.error('Failed to save subscription:', errorData.message || 'Unknown error');
+        alert(`Error: ${errorData.message || 'Failed to save subscription. Please try again.'}`);
       }
-      setSubmitting(false);
+    } catch (error) {
+      console.error('Network or Server Error:', error);
+      alert('Could not connect to the server. Please ensure your backend is running.');
     }
   };
 
+  
+  const ratingProgress = ((formData.rating - 1) / 4) * 100;
+
   return (
-    <div style={{ padding: '2rem', maxWidth: '500px', margin: '0 auto' }}>
-      <h2>Add New Subscription</h2>
+    <div className="add-page">
+      <Sidebar />
+      <main className="add-main animate-page">
+        
+        <div className="add-container glass-panel">
+          
+          <div className="add-header">
+            <h1>Add New <span className="gradient-text">Subscription</span></h1>
+            <p>Track a new recurring expense.</p>
+          </div>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {success && <p style={{ color: 'green' }}>{success}</p>}
+          <form onSubmit={handleSubmit} className="add-form">
+            
+            <div className="form-group full-width">
+              <label>Service Name</label>
+              <input 
+                type="text" 
+                name="name"
+                className="form-input" 
+                placeholder="e.g., Netflix, Spotify, AWS"
+                value={formData.name}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '1rem' }}>
-          <label>Subscription Name</label>
-          <input type="text" name="name" value={formData.name} onChange={handleChange} required style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Cost ($)</label>
+                <input 
+                    type="number" 
+                    name="cost"
+                    step="0.01"
+                    min="0"
+                    className="form-input" 
+                    placeholder="0.00"
+                    value={formData.cost}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
+              <div className="form-group">
+                <label>Billing Cycle</label>
+                <div className="select-wrapper">
+                  <select name="billingCycle" className="form-input" value={formData.billingCycle} onChange={handleChange}>
+                    <option value="Monthly">Monthly</option>
+                    <option value="Yearly">Yearly</option>
+                    <option value="Weekly">Weekly</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Category</label>
+                <div className="select-wrapper">
+                  <select name="category" className="form-input" value={formData.category} onChange={handleChange}>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Music">Music</option>
+                    <option value="Productivity">Productivity</option>
+                    <option value="Utilities">Utilities</option>
+                    <option value="Gaming">Gaming</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Next Renewal Date</label>
+                <input 
+                    type="date" 
+                    name="nextRenewalDate"
+                    className="form-input" 
+                    value={formData.nextRenewalDate}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
+            </div>
+
+            <div className="form-group full-width slider-section">
+              <div className="slider-header">
+                <label>Value Rating (1 = Poor, 5 = Essential)</label>
+                <span className="rating-badge primary-badge">{formData.rating} Stars</span>
+              </div>
+              <div className="custom-range-wrapper">
+                <input 
+                  type="range" 
+                  name="rating"
+                  min="1" 
+                  max="5" 
+                  step="1"
+                  value={formData.rating} 
+                  onChange={handleChange}
+                  className="sleek-slider thumb-primary"
+                  style={{ background: `linear-gradient(to right, #6366f1 ${ratingProgress}%, rgba(148, 163, 184, 0.2) ${ratingProgress}%)` }}
+                />
+              </div>
+              <div className="slider-scale">
+                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+              </div>
+            </div>
+
+            <div className="form-group full-width glass-alert">
+              <div className="toggle-text">
+                <label>Email Reminders</label>
+                <p>Receive alerts 3, 2, and 1 day before this bill is due.</p>
+              </div>
+              <label className="theme-switch">
+                <input 
+                  type="checkbox" 
+                  name="reminders"
+                  checked={formData.reminders} 
+                  onChange={handleChange}
+                />
+                <span className="slider-toggle round"></span>
+              </label>
+            </div>
+
+            <div className="form-actions">
+              <button type="submit" className="btn-primary">Save Subscription</button>
+              <button type="button" className="btn-secondary" onClick={() => navigate('/dashboard')}>Cancel</button>
+            </div>
+
+          </form>
+
         </div>
-
-        <div style={{ marginBottom: '1rem' }}>
-          <label>Cost ($)</label>
-          <input type="number" name="cost" value={formData.cost} onChange={handleChange} min="0" step="0.01" required style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
-        </div>
-
-        <div style={{ marginBottom: '1rem' }}>
-          <label>Category</label>
-          <select name="category" value={formData.category} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Utilities">Utilities</option>
-            <option value="Work">Work</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-
-        <div style={{ marginBottom: '1rem' }}>
-          <label>Billing Cycle</label>
-          <select name="billingCycle" value={formData.billingCycle} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
-          </select>
-        </div>
-
-        {/* =========================================
-            NEW VALUE RATING DROPDOWN
-        ========================================= */}
-        <div style={{ marginBottom: '1rem' }}>
-          <label>Value Rating (1-5 Stars)</label>
-          <select name="rating" value={formData.rating} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}>
-            <option value="5">⭐⭐⭐⭐⭐ (Absolute Must-Have)</option>
-            <option value="4">⭐⭐⭐⭐ (Use it often)</option>
-            <option value="3">⭐⭐⭐ (It's alright)</option>
-            <option value="2">⭐⭐ (Barely use it)</option>
-            <option value="1">⭐ (Waste of money)</option>
-          </select>
-        </div>
-
-        <div style={{ marginBottom: '1rem' }}>
-          <label>Next Renewal Date</label>
-          <input type="date" name="nextRenewalDate" value={formData.nextRenewalDate} onChange={handleChange} required style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }} />
-        </div>
-
-        <button type="submit" disabled={submitting} style={{ width: '100%', padding: '0.75rem', background: submitting ? '#999' : '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: submitting ? 'not-allowed' : 'pointer', fontSize: '1rem' }}>
-          {submitting ? 'Adding...' : 'Add Subscription'}
-        </button>
-      </form>
-
-      <div style={{ marginTop: '1rem' }}>
-        <Link to="/">← Back to Dashboard</Link>
-      </div>
+      </main>
     </div>
   );
-}
+};
 
 export default AddSubscription;

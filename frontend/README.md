@@ -1,16 +1,30 @@
-# React + Vite
+# 💸 SubSight
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**SubSight** is a modern, full-stack SaaS dashboard designed to help users track recurring expenses, detect overlapping services, and receive automated email reminders before they are billed. 
 
-Currently, two official plugins are available:
+Say goodbye to forgotten free trials and redundant streaming services!
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Key Features
 
-## React Compiler
+* 🔒 **Multi-Tenant Architecture:** Secure, isolated user data utilizing JWT authentication and React route protection.
+* ⚙️ **Automated Cron Jobs:** A backend Node-cron scheduler automatically scans the MongoDB database daily and emails users customized reminders 1-3 days before a bill is due using Nodemailer.
+* 🧠 **Smart Alerts:** Intelligent algorithms detect overlapping subscriptions within the same category and flag low-rated subscriptions.
+* 🧮 **Real-Time Financial Calculator:** Dynamic React state management instantly projects cumulative spending and calculates "wasted" money over 1, 3, and 5-year periods.
+* 📊 **Dynamic Analytics:** Real-time data visualization and expense tracking built with Recharts.
+* 🎨 **Glassmorphism UI:** Custom, fully responsive interface with seamless state management for Light/Dark mode transitions.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ Tech Stack
 
-## Expanding the ESLint configuration
+**Frontend:** React.js, Recharts, CSS3 (Glassmorphism)
+**Backend:** Node.js, Express.js, MongoDB, Mongoose
+**Tools:** Node-Cron, Nodemailer, JWT, Bcryptjs
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🚀 Getting Started
+
+1. Clone the repository and run `npm install` in both `frontend` and `backend` directories.
+2. Create a `.env` file in the backend with `MONGODB_URI`, `JWT_SECRET`, `EMAIL_USER`, and `EMAIL_PASS`.
+3. Run `npm run dev` in both folders to start the local servers.
+
+## 🤝 Contact & Connect
+Designed and developed by **Movinya**. 
+Feel free to reach out on LinkedIn if you have any questions or want to discuss full-stack development!
